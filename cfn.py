@@ -1,0 +1,1 @@
+url_conexion = 'mysql+pymysql://root:admin123@localhost/noticias?charset=utf8mb4'
