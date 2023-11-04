@@ -6,6 +6,7 @@ from enum import Enum
 class Tipo(str, Enum):
     Error = "Error"
     Warning = "Warning"
+    Suceessful = "Successful"
 
 
 class Mensajes(BaseModel):
