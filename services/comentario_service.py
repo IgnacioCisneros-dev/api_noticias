@@ -1,6 +1,7 @@
 from config.conexion_bd import crear_conexion
 from sqlalchemy import text
 from entities.entities import comentarios
+from fastapi import HTTPException, status
 import sys
 
 # Funcion que obtiene todos los comentarios
@@ -31,8 +32,8 @@ def obtener_comentarios():
                 lista_comentarios.append(comentario)
         return lista_comentarios
     except Exception:
-        print("Ocurrio un error al intentar obtener los comentarios.",
-              sys.exc_info()[1])
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="Error al intentar obtener los comentarios de la base de datos.")
 
 # Funcion que busca un comentario en base de datos por su id
 

@@ -16,3 +16,9 @@ class requestNoticia(BaseModel):
     fuente_id: Optional[int] = None
     categoria_noticia_id: Optional[int] = None
     url: Optional[str] = None
+
+class requestComentario(BaseModel):
+    contenido: Optional[str] = None
+    fecha_comentario: Optional[date] = None
+    usuario_id: Optional[int] = None
+    noticia_id: Optional[int] = None
