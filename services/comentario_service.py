@@ -7,6 +7,7 @@ from models.request_fuente import requestComentario
 from models.response import RespuestaExitosa
 from models.response import Mensajes
 from models.model import Tipo
+from sqlalchemy.exc import SQLAlchemyError
 
 # Funcion que obtiene todos los comentarios
 
@@ -35,9 +36,11 @@ def obtener_comentarios():
                 comentario.usuario_id = i[4]
                 lista_comentarios.append(comentario)
         return lista_comentarios
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Error al intentar obtener los comentarios de la base de datos.")
+    finally:
+        conexion.close()
 
 # Funcion que busca un comentario en base de datos por su id
 
@@ -73,9 +76,11 @@ def buscar_por_id(comentario_id: int):
                 comentario.usuario_id = i[4]
                 list_comentario.append(comentario)
         return list_comentario
-    except Exception:
+    except SQLAlchemyError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail=f"Error al buscar el comentario por el id {comentario_id}.")
+    finally:
+        conexion.close()
 
 # Funcion que se encarga de buscar un comentario por el id de la noticia
 
@@ -117,6 +122,8 @@ def buscar_por_noticia_id(noticia_id: int):
             status_code=status.HTTP_409_CONFLICT,
             detail="Error al obtener el comentario por noticia_id"
         )
+    finally:
+        conexion.close()
 
 
 def guardar_comentario(request_comentario: requestComentario):
@@ -150,7 +157,6 @@ def guardar_comentario(request_comentario: requestComentario):
         # Se ejecuta la consulta
         conexion.execute(statement=query, parameters=parametros)
         conexion.commit()
-        conexion.close()
 
         # Se crea instancia del objeto de respuesta
         respuesta = RespuestaExitosa(mensaje="Peticion Exitosa.",
@@ -158,10 +164,11 @@ def guardar_comentario(request_comentario: requestComentario):
                                                       tipo_de_mensaje=Tipo.Suceessful))
         return respuesta
 
-    except Exception as error:
-        print(f"Error: {error.__dict__}")
+    except SQLAlchemyError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Error al guardar el comentario en la base.")
+    finally:
+        conexion.close()
 
 
 def obtener_ultimo_id():
@@ -183,9 +190,11 @@ def obtener_ultimo_id():
                 list_ultimo_id.append(i[0])
         return list_ultimo_id
 
-    except HTTPException:
+    except SQLAlchemyError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Error al obtener el ultimo registro del id.")
+    finally:
+        conexion.close()
 
 
 def actualizar_comentario(request_comentario: requestComentario, comentario_id: int):
@@ -223,11 +232,11 @@ def actualizar_comentario(request_comentario: requestComentario, comentario_id: 
                                          tipo_de_mensaje=Tipo.Suceessful))
 
         return respuesta
-    except HTTPException as error:
-        print(
-            f"Ocurrio un error al actualizar el comentario, error: {error.__dict__}")
+    except SQLAlchemyError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Error al actualizar el comentario.")
+    finally:
+        conexion.close()
 
 
 def eliminar_comentario(comentario_id: int):
@@ -265,6 +274,8 @@ def eliminar_comentario(comentario_id: int):
                 tipo_de_mensaje=Tipo.Suceessful))
 
         return respuesta
-    except HTTPException as error:
+    except SQLAlchemyError as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail=f"Error al tratar de eliminar el comentario. {error.detail}")
+    finally:
+        conexion.close()

@@ -2,6 +2,10 @@ from config.conexion_bd import crear_conexion
 import sys
 from sqlalchemy import text
 from entities.entities import categorias, requestCategoria
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException, status
+from models.response import RespuestaExitosa
+from models.model import Mensajes, Tipo
 
 
 def consultar_categorias():
@@ -23,11 +27,14 @@ def consultar_categorias():
         else:
             lista_categorias = []
 
-        conexion.close()
         return lista_categorias
-    except Exception:
-        print("Error al consultar las categorias de base de datos. ",
-              sys.exc_info()[1])
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al consultar las categorias."
+        )
+    finally:
+        conexion.close()
 
 
 def consultar_categoria_por_id(categoria_id: int):
@@ -52,10 +59,15 @@ def consultar_categoria_por_id(categoria_id: int):
                 categoria.descripcion = i[2]
         else:
             categoria = []
-        conexion.close()
+
         return categoria
-    except Exception:
-        print("Error al consultar en base de datos ", sys.exc_info()[1])
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al consultar categoria."
+        )
+    finally:
+        conexion.close()
 
 
 def agregar_categoria(categoria: requestCategoria):
@@ -74,11 +86,23 @@ def agregar_categoria(categoria: requestCategoria):
 
         conexion.execute(insert, values)
         conexion.commit()
+
+        # Se genera la respuesta para el cliente
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa.",
+            detalle=Mensajes(
+                descripcion="Categoria creada exitosamente.",
+                tipo_de_mensaje=Tipo.Suceessful
+            )
+        )
+        return respuesta
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al crear la categoria."
+        )
+    finally:
         conexion.close()
-        return 'Categoria registrada.'
-    except Exception:
-        print("Ocurrio un error al intentar guardar la categoria en BD. ",
-              sys.exc_info()[1])
 
 
 def recuperar_ultimo_registro():
@@ -94,10 +118,17 @@ def recuperar_ultimo_registro():
         if respuesta is not None and len(respuesta) > 0:
             return respuesta[0]
         else:
-            print("Ocurrio un error al buscar el ultimo id de categorias.")
-    except Exception:
-        print("Ocurrio un error al buscar el ultimo id de categorias.",
-              sys.exc_info()[1])
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="La tabla de categorias esta vacia."
+            )
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al obtener el ultimo registro de categorias."
+        )
+    finally:
+        conexion.close()
 
 
 def actualizar_categoria_por_id(categoria_id, categoria_request: requestCategoria):
@@ -118,13 +149,29 @@ def actualizar_categoria_por_id(categoria_id, categoria_request: requestCategori
 
             conexion.execute(update, parametros)
             conexion.commit()
-            conexion.close()
-            return "Categoria actualizada exitosamente."
+
+            # Se genera la respuesta para el cliente
+            respuesta = RespuestaExitosa(
+                mensaje="Peticion Exitosa.",
+                detalle=Mensajes(
+                    descripcion="Categoria actualizada exitosamente.",
+                    tipo_de_mensaje=Tipo.Suceessful
+                )
+            )
+            return respuesta
         else:
-            Exception("No se encontro el registro para actualizar.")
-    except Exception:
-        print("Ocurrio un error al intentar actualizar la categoria.",
-              sys.exc_info()[1])
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No se encontro la categoria para actualizar."
+            )
+
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al actualizar la categoria."
+        )
+    finally:
+        conexion.close()
 
 
 def eliminar_por_id(categoria_id: int):
@@ -140,7 +187,22 @@ def eliminar_por_id(categoria_id: int):
 
         conexion.execute(delete, parameters=parametro)
         conexion.commit()
+
+        # Se forma la respuesta para el cliente
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa",
+            detalle=Mensajes(
+                descripcion="Categoria eliminada exitosamente.",
+                tipo_de_mensaje=Tipo.Suceessful
+            )
+        )
+
+        return respuesta
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al eliminar la categoria."
+        )
+
+    finally:
         conexion.close()
-        return "Categoria eliminada correctamente."
-    except Exception:
-        print("Ocurrio un error al eliminar la categoria.", sys.exc_info()[1])

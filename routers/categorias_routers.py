@@ -4,6 +4,7 @@ from services.categoria_service import consultar_categorias, consultar_categoria
 from services.categoria_service import agregar_categoria, actualizar_categoria_por_id
 from services.categoria_service import eliminar_por_id
 from entities.entities import requestCategoria
+from models.response import RespuestaExitosa
 
 
 categorias_router = APIRouter(prefix='/categoria',
@@ -31,18 +32,21 @@ def obtener_por_id(categoria_id: int):
 
 
 @categorias_router.post('/guardar',
-                        summary='EndPoint que guarda nuevas categorias.')
+                        summary='EndPoint que guarda nuevas categorias.',
+                        response_model=RespuestaExitosa)
 def guardar_categoria(categoria: requestCategoria):
     return agregar_categoria(categoria=categoria)
 
 
 @categorias_router.put("/actualizar/{categoria_id}",
-                       summary="EndPoint que actualiza una categoria.")
+                       summary="EndPoint que actualiza una categoria.",
+                       response_model=RespuestaExitosa)
 def actualizar_categoria(categoria_id: int, categoria: requestCategoria):
     return actualizar_categoria_por_id(categoria_id, categoria)
 
 
 @categorias_router.delete("/eliminar/{categoria_id}",
-                          summary="EndPoint que elimina una categoria de la BD")
+                          summary="EndPoint que elimina una categoria de la BD",
+                          response_model=RespuestaExitosa)
 def eliminar_categoria(categoria_id):
     return eliminar_por_id(categoria_id)

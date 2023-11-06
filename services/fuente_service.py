@@ -3,6 +3,10 @@ import sys
 from sqlalchemy import text
 from entities.entities import fuentes
 from models.request_fuente import requestFuente
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException, status
+from models.response import RespuestaExitosa
+from models.model import Tipo, Mensajes
 
 
 def consultar_fuentes():
@@ -29,9 +33,13 @@ def consultar_fuentes():
         else:
             conexion.close()
             return lista_fuentes
-    except Exception:
-        print("Ocurrio un error al intentar consultar las fuentes en base de datos.",
-              sys.exc_info()[1])
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al consultar las fuentes de base de datos."
+        )
+    finally:
+        conexion.close()
 
 
 def buscar_fuente_por_id(fuente_id: int):
@@ -58,14 +66,17 @@ def buscar_fuente_por_id(fuente_id: int):
                 fuente.url_fuente = f[2]
                 fuente.descripcion = f[3]
                 list_fuente.append(fuente)
-            conexion.close()
             return list_fuente
         else:
             conexion.close()
             return list_fuente
-    except Exception:
-        print(
-            f"Ocurrio un error al intentar buscar la fuente por el id {fuente_id}: ", sys.exc_info()[1])
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al buscar fuente por id"
+        )
+    finally:
+        conexion.close()
 
 
 def persistir_fuente(request_fuente: requestFuente):
@@ -86,11 +97,24 @@ def persistir_fuente(request_fuente: requestFuente):
 
         conexion.execute(statement=insert, parameters=parametros)
         conexion.commit()
+
+        # Se genera la respuesta para el cliente
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa.",
+            detalle=Mensajes(
+                descripcion="Fuente registrada exitosamente.",
+                tipo_de_mensaje=Tipo.Suceessful
+            )
+        )
+        return respuesta
+    except SQLAlchemyError:
+        print(sys.exc_info()[1])
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al intentar guardar la fuente."
+        )
+    finally:
         conexion.close()
-        return 'Fuente guardada exitosamente.'
-    except Exception:
-        print(
-            f"Ocurrio un error al intentar guardar la fuente {request_fuente.nombre}: ", sys.exc_info()[1])
 
 
 def obtener_el_ultimo_id():
@@ -110,9 +134,13 @@ def obtener_el_ultimo_id():
         else:
             list_id.append(0)
         return list_id
-    except Exception:
-        print("Ocurrio un error al obtener el ultimo id.",
-              sys.exc_info()[1])
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al obtener el ultimo registro de fuentes."
+        )
+    finally:
+        conexion.close()
 
 
 def actualizar_fuentes(request_fuente: requestFuente, fuente_id: int):
@@ -139,13 +167,30 @@ def actualizar_fuentes(request_fuente: requestFuente, fuente_id: int):
 
             conexion.execute(statement=update, parameters=parametros)
             conexion.commit()
-            conexion.close()
-            return 'Fuente actualizada exitosamente.'
+
+            # Se genera la respuesta para el cliente
+            respuesta = RespuestaExitosa(
+                mensaje="Peticion Exitosa.",
+                detalle=Mensajes(
+                    descripcion="Fuente actualizada exitosamente.",
+                    tipo_de_mensaje=Tipo.Suceessful
+                )
+            )
+
+            return respuesta
         else:
-            return 'no se encontro la fuenta para actualizar.'
-    except Exception:
-        print(
-            f"Ocurrio un error al intentar actualizar la fuente {request_fuente.nombre}: ", sys.exc_info()[1])
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No existe la fuente que intenta actualizar."
+            )
+
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al intentar actualizar la fuente."
+        )
+    finally:
+        conexion()
 
 
 def eliminar_por_id(fuente_id: int):
@@ -161,8 +206,21 @@ def eliminar_por_id(fuente_id: int):
 
         conexion.execute(statement=delete, parameters=parametro)
         conexion.commit()
+
+        # Se genera la respuesta para el cliente
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa",
+            detalle=Mensajes(
+                descripcion="Ocurrio un error al tratar de eliminar la fuente.",
+                tipo_de_mensaje=Tipo.Suceessful
+            )
+        )
+
+        return respuesta
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al eliminar la fuente."
+        )
+    finally:
         conexion.close()
-        return 'Fuente eliminada correctamente.'
-    except Exception:
-        print("Ocurrio un error al intentar eliminar la fuente ",
-              sys.exc_info()[1])

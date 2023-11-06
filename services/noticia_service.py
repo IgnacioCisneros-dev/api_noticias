@@ -6,6 +6,7 @@ import sys
 from models.response import RespuestaExitosa
 from models.model import Mensajes, Tipo
 from fastapi import HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
 
 
 def consultar_noticias():
@@ -36,11 +37,13 @@ def consultar_noticias():
         else:
             return lista_de_noticias
 
-    except HTTPException:
+    except SQLAlchemyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Error al consultar las noticias de la base de datos."
         )
+    finally:
+        conexion.close()
 
 
 def buscar_por_id(noticia_id: int):
@@ -71,12 +74,18 @@ def buscar_por_id(noticia_id: int):
                 list_noticia.append(noticia)
             return list_noticia
         else:
-            return list_noticia
-    except HTTPException:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No se encontro un registro con el id {noticia_id}"
+            )
+
+    except SQLAlchemyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Error al buscar por id la noticia."
         )
+    finally:
+        conexion.close()
 
 
 def agregar_noticia(request_noticias: requestNoticia):
@@ -114,7 +123,6 @@ def agregar_noticia(request_noticias: requestNoticia):
         # Se ejecuta el query
         conexion.execute(statement=insert, parameters=values)
         conexion.commit()
-        conexion.close()
 
         # Se genera la respuesta para el cliente
         respuesta = RespuestaExitosa(
@@ -125,10 +133,12 @@ def agregar_noticia(request_noticias: requestNoticia):
             ))
 
         return respuesta
-    except HTTPException:
+    except SQLAlchemyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Error al crear una nueva noticia.")
+    finally:
+        conexion.close()
 
 
 def obtener_ultimo_id():
@@ -154,6 +164,8 @@ def obtener_ultimo_id():
             status_code=status.HTTP_409_CONFLICT,
             detail="Error al obtener el ultimo elemento de noticias."
         )
+    finally:
+        conexion.close()
 
 
 def actualizar_noticia(request_noticia: requestNoticia, noticia_id: int):
@@ -183,7 +195,6 @@ def actualizar_noticia(request_noticia: requestNoticia, noticia_id: int):
         # Se ejecuta el update
         conexion.execute(statement=update, parameters=parametros)
         conexion.commit()
-        conexion.close()
 
         # Se forma la respuesta para el usuario
         respuesta = RespuestaExitosa(
@@ -196,11 +207,13 @@ def actualizar_noticia(request_noticia: requestNoticia, noticia_id: int):
 
         return respuesta
 
-    except Exception:
+    except SQLAlchemyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Error al actualizar la noticia en base de datos."
         )
+    finally:
+        conexion.close()
 
 # Funcion que hace la eliminacion de una noticia en base de datos
 
@@ -224,9 +237,6 @@ def eliminar_noticia(noticia_id: int):
         conexion.execute(statement=delete, parameters=parametro)
         conexion.commit()
 
-        # Se cierra la conexion con la base de datos
-        conexion.close()
-
         # Se genera la respuesta al cliente
         respuesta = RespuestaExitosa(
             mensaje="Peticion Exitosa.",
@@ -237,8 +247,11 @@ def eliminar_noticia(noticia_id: int):
         )
 
         return respuesta
-    except HTTPException as error:
+    except SQLAlchemyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Error al eliminar la noticia de base de datos."
         )
+    finally:
+        # Se cierra la conexion con la base de datos
+        conexion.close()

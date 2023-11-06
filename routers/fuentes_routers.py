@@ -4,6 +4,7 @@ from services.fuente_service import consultar_fuentes, buscar_fuente_por_id
 from services.fuente_service import persistir_fuente, actualizar_fuentes
 from services.fuente_service import eliminar_por_id
 from models.request_fuente import requestFuente
+from models.response import RespuestaExitosa
 
 
 fuentes_routers = APIRouter(prefix="/fuente",
@@ -23,18 +24,23 @@ def obtener_por_id(fuente_id: int):
 
 
 @fuentes_routers.post("/guardar",
-                      summary="EndPoint que agrega una nueva fuenta a la base de datos.")
+                      summary="EndPoint que agrega una nueva fuenta a la base de datos.",
+                      response_model=RespuestaExitosa)
 def guardar_fuente(request_fuente: requestFuente):
     return persistir_fuente(request_fuente)
 
 
-@fuentes_routers.put("/actualizar/{fuente_id}",
-                     summary="EndPoint que se utiliza para actualizar las fuentes.")
+@fuentes_routers.put(
+    "/actualizar/{fuente_id}",
+    summary="EndPoint que sirve para actualizar una fuente.",
+    response_model=RespuestaExitosa
+)
 def actualizar_fuente(request_fuente: requestFuente, fuente_id: int):
     return actualizar_fuentes(request_fuente, fuente_id)
 
 
 @fuentes_routers.delete("/eliminar/{fuente_id}",
-                        summary="EndPoint que elimina una fuente de la base de datos.")
+                        summary="EndPoint que elimina una fuente de la base de datos.",
+                        response_model=RespuestaExitosa)
 def eliminar_fuente(fuente_id: int):
     return eliminar_por_id(fuente_id)
