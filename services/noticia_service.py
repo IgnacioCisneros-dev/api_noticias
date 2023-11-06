@@ -3,6 +3,9 @@ from sqlalchemy import text
 from entities.entities import noticias
 from models.request_fuente import requestNoticia
 import sys
+from models.response import RespuestaExitosa
+from models.model import Mensajes, Tipo
+from fastapi import HTTPException, status
 
 
 def consultar_noticias():
@@ -33,8 +36,11 @@ def consultar_noticias():
         else:
             return lista_de_noticias
 
-    except Exception:
-        print("Ocurrio un error al consultar las noticias.", sys.exc_info()[1])
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al consultar las noticias de la base de datos."
+        )
 
 
 def buscar_por_id(noticia_id: int):
@@ -66,9 +72,11 @@ def buscar_por_id(noticia_id: int):
             return list_noticia
         else:
             return list_noticia
-    except Exception:
-        print(
-            f"Ocurrio un error al buscar la noticia por el id {noticia_id}. ", sys.exc_info()[1])
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al buscar por id la noticia."
+        )
 
 
 def agregar_noticia(request_noticias: requestNoticia):
@@ -107,10 +115,20 @@ def agregar_noticia(request_noticias: requestNoticia):
         conexion.execute(statement=insert, parameters=values)
         conexion.commit()
         conexion.close()
-        return "Noticia guardada exitosamente."
-    except Exception:
-        print("Ocurrio un error al intentar guardad la noticia.",
-              sys.exc_info()[1])
+
+        # Se genera la respuesta para el cliente
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa.",
+            detalle=Mensajes(
+                descripcion="Noticia guardada exitosamente en la Base.",
+                tipo_de_mensaje=Tipo.Suceessful
+            ))
+
+        return respuesta
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al crear una nueva noticia.")
 
 
 def obtener_ultimo_id():
@@ -131,9 +149,11 @@ def obtener_ultimo_id():
             for i in ultimo_id:
                 list_ultimo_id.append(i[0])
         return list_ultimo_id
-    except Exception:
-        print("Ocurrio un error al obtener el ultimo id de noticias.",
-              sys.exc_info()[1])
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al obtener el ultimo elemento de noticias."
+        )
 
 
 def actualizar_noticia(request_noticia: requestNoticia, noticia_id: int):
@@ -164,11 +184,23 @@ def actualizar_noticia(request_noticia: requestNoticia, noticia_id: int):
         conexion.execute(statement=update, parameters=parametros)
         conexion.commit()
         conexion.close()
-        return "Noticia actualizada exitosamente."
+
+        # Se forma la respuesta para el usuario
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa.",
+            detalle=Mensajes(
+                descripcion="Noticia actualizada exitosamente.",
+                tipo_de_mensaje=Tipo.Suceessful
+            )
+        )
+
+        return respuesta
 
     except Exception:
-        print("Ocurrio un error al intentar actualizar la noticia.",
-              sys.exc_info()[1])
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al actualizar la noticia en base de datos."
+        )
 
 # Funcion que hace la eliminacion de una noticia en base de datos
 
@@ -195,8 +227,18 @@ def eliminar_noticia(noticia_id: int):
         # Se cierra la conexion con la base de datos
         conexion.close()
 
-        # Se retorna mensaje de confirmacion
-        return "Noticia eliminado exitosamente."
-    except Exception:
-        print("Ocurrio un error al intentar eliminar la noticia.",
-              sys.exc_info()[1])
+        # Se genera la respuesta al cliente
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa.",
+            detalle=Mensajes(
+                descripcion="Noticia eliminada exitosamente.",
+                tipo_de_mensaje=Tipo.Suceessful
+            )
+        )
+
+        return respuesta
+    except HTTPException as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al eliminar la noticia de base de datos."
+        )

@@ -1,5 +1,6 @@
 from config.conexion_bd import crear_conexion
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from entities.entities import comentarios
 from fastapi import HTTPException, status
 from models.request_fuente import requestComentario
@@ -34,7 +35,7 @@ def obtener_comentarios():
                 comentario.usuario_id = i[4]
                 lista_comentarios.append(comentario)
         return lista_comentarios
-    except Exception:
+    except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Error al intentar obtener los comentarios de la base de datos.")
 
@@ -87,7 +88,7 @@ def buscar_por_noticia_id(noticia_id: int):
         consulta = text(""" SELECT id, contenido,
                         fechacomentario, usuarioid, noticiaid
                         FROM comentarios
-                        WHERE id = :noticia_id """)
+                        WHERE id = :nqoticia_id """)
 
         # Parametro para la consulta
         parametro = {
@@ -111,8 +112,11 @@ def buscar_por_noticia_id(noticia_id: int):
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"No se encontro el comentario por noticia_id {noticia_id}")
-    except HTTPException as e:
-        raise HTTPException(e.status_code, detail=e.detail)
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Error al obtener el comentario por noticia_id"
+        )
 
 
 def guardar_comentario(request_comentario: requestComentario):
@@ -182,3 +186,85 @@ def obtener_ultimo_id():
     except HTTPException:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Error al obtener el ultimo registro del id.")
+
+
+def actualizar_comentario(request_comentario: requestComentario, comentario_id: int):
+    try:
+        # Se crea la conexion con la base de datos.
+        db = crear_conexion()
+        conexion = db.connect()
+
+        # Se crea la query para actualizar el comentario
+        update = text(""" UPDATE comentarios
+                      SET contenido = :contenido, fechacomentario = :fecha_comentario,
+                       usuarioid = :usuario_id, noticiaid = :noticia_id
+                      WHERE id = :comentario_id""")
+
+        # Se crean los parametros para actualizar los valores de comentarios
+        parametros = {
+            "contenido": request_comentario.contenido,
+            "fecha_comentario": request_comentario.fecha_comentario,
+            "usuario_id": request_comentario.usuario_id,
+            "noticia_id": request_comentario.noticia_id,
+            "comentario_id": comentario_id
+        }
+
+        # Se ejecuta el update
+        conexion.execute(statement=update, parameters=parametros)
+        conexion.commit()
+
+        # Se cierra la conexion con la base de datos
+        conexion.close()
+
+        # Se genera la respuesta para el cliente
+        respuesta = RespuestaExitosa(mensaje="Peticion Exitosa.",
+                                     detalle=Mensajes(
+                                         descripcion="El comentario se ha actualizado exitosamente.",
+                                         tipo_de_mensaje=Tipo.Suceessful))
+
+        return respuesta
+    except HTTPException as error:
+        print(
+            f"Ocurrio un error al actualizar el comentario, error: {error.__dict__}")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="Error al actualizar el comentario.")
+
+
+def eliminar_comentario(comentario_id: int):
+    try:
+        # Se valida que el comentario con el id exista
+        comentario = buscar_por_id(comentario_id)
+
+        if len(comentario) == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="No existe en base de datos el comentario que desea eliminar.")
+
+        # Se crea la conexion con mi base de datos
+        db = crear_conexion()
+        conexion = db.connect()
+
+        # Se crea query para eliminar
+        delete = text(""" DELETE FROM comentarios
+                      WHERE id = :comentario_id """)
+
+        # Se crea el parametro para el where
+        parametro = {
+            "comentario_id": comentario_id
+        }
+
+        # Se ejecuta la consulta
+        conexion.execute(statement=delete, parameters=parametro)
+        conexion.commit()
+        conexion.close()
+
+        # Se genera la respuesta para el cliente
+        respuesta = RespuestaExitosa(
+            mensaje="Peticion Exitosa",
+            detalle=Mensajes(
+                descripcion="Se elimino el comentario exitosamente de la BD.",
+                tipo_de_mensaje=Tipo.Suceessful))
+
+        return respuesta
+    except HTTPException as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Error al tratar de eliminar el comentario. {error.detail}")

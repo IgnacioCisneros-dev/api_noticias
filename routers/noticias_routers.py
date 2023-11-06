@@ -3,6 +3,7 @@ from services.noticia_service import consultar_noticias, buscar_por_id
 from services.noticia_service import agregar_noticia, actualizar_noticia
 from services.noticia_service import eliminar_noticia
 from models.request_fuente import requestNoticia
+from models.response import RespuestaExitosa
 
 noticias_router = APIRouter(prefix="/noticia",
                             tags=['Noticias.'])
@@ -20,18 +21,21 @@ def obtener_por_id(noticia_id):
 
 
 @noticias_router.post("/agregar",
-                      summary="EndPoint para agregar una nueva noticia.")
+                      summary="EndPoint para agregar una nueva noticia.",
+                      response_model=RespuestaExitosa)
 def guardar(request_noticia: requestNoticia):
     return agregar_noticia(request_noticia)
 
 
 @noticias_router.put("/actualizar/{noticia_id}",
-                     summary="EndPoint que actualiza una noticia.")
+                     summary="EndPoint que actualiza una noticia.",
+                     response_model=RespuestaExitosa)
 def actualizar(requet_noticia: requestNoticia, noticia_id: int):
     return actualizar_noticia(requet_noticia, noticia_id)
 
 
 @noticias_router.delete("/eliminar/{noticia_id}",
-                        summary="EndPoint que elimina una noticia de base de datos.")
+                        summary="EndPoint que elimina una noticia de base de datos.",
+                        response_model=RespuestaExitosa)
 def eliminar(noticia_id: int):
     return eliminar_noticia(noticia_id)
