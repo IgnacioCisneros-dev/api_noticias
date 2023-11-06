@@ -88,7 +88,7 @@ def buscar_por_noticia_id(noticia_id: int):
         consulta = text(""" SELECT id, contenido,
                         fechacomentario, usuarioid, noticiaid
                         FROM comentarios
-                        WHERE id = :nqoticia_id """)
+                        WHERE id = :noticia_id """)
 
         # Parametro para la consulta
         parametro = {
